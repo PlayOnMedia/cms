@@ -1,0 +1,24 @@
+# traefik.yaml
+# htpasswd -n -b username password
+# username:$apr1$StnOTrO1$aEd.LJFvQn3L3d.IM.2se0
+accessLogs:
+  enabled: true
+  format: json
+acme:
+  enabled: true
+  email: info@plyonmedia.com
+  challengeType: http-01
+  staging: false
+  persistence:
+    enabled: true
+dashboard:
+  enabled: true
+  domain: traefik.cluster.playonmedia.com
+  auth:
+    basic:
+      replace-username: replace-password
+rbac:
+  enabled: true
+ssl:
+  enabled: true
+  enforced: true
