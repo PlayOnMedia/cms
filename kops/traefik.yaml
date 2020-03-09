@@ -6,7 +6,7 @@ accessLogs:
   format: json
 acme:
   enabled: true
-  email: info@plyonmedia.com
+  email: info@playonmedia.com
   challengeType: http-01
   staging: false
   persistence:

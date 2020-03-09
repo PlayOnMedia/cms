@@ -10,7 +10,7 @@ ingress:
   certManager: false
 
   ## When the ingress is enabled, a host pointing to this will be created
-  hostname: wordpress.cluster.projectcapybara.com
+  hostname: wordpress.cluster.playonmedia.com
 
   ## Ingress annotations done as key:value pairs
   ## For a full list of possible ingress annotations, please see

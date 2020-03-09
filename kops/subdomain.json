@@ -9,16 +9,16 @@
           "TTL": 300,
           "ResourceRecords": [
             {
-              "Value": "xxx"
+              "Value": "ns-1308.awsdns-35.org"
             },
             {
-              "Value": "xxx"
+              "Value": "ns-605.awsdns-11.net"
             },
             {
-              "Value": "xxx"
+              "Value": "ns-1539.awsdns-00.co.uk"
             },
             {
-              "Value": "xxx"
+              "Value": "ns-181.awsdns-22.com"
             }
           ]
         }

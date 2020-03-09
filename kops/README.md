@@ -5,9 +5,26 @@
 * **Kubectl:** https://kubernetes.io/docs/tasks/tools/install-kubectl/
 * **KOPS:** https://github.com/kubernetes/kops
 * **Helm:** https://helm.sh/docs/using_helm/
+* **JQ** sudo apt-get install jq
 * **AWS CLI:** https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 * **AWS Access Creds:** https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html
 * **AWS S3 Bucket:** https://docs.aws.amazon.com/cli/latest/reference/s3api/create-bucket.html
+
+```
+sudo apt update
+sudo apt install -y awscli
+sudo snap install kubectl --classic
+wget https://github.com/kubernetes/kops/releases/download/v1.16.0/kops-linux-amd64
+chmod +x kops-linux-amd64
+mv ./kops-linux-amd64 /usr/local/bin/kops
+aws config
+curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+```
 
 Setup AWS credentials locally (~/.aws/credentials) to create the s3 bucket/run KOPS commands
 ```
@@ -16,10 +33,12 @@ aws_access_key_id = XXXXXXXXXXXXXXXX
 aws_secret_access_key = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
+Update your environment file (First copy .env.sample to .env and after filling it out run source .env)
+
 Create a bucket to store the KOPS state.
 ```
-aws s3api create-bucket --bucket kops-state-playonmedia --region us-east-1
-aws s3api put-bucket-versioning --bucket kops-state-playonmedia --versioning-configuration Status=Enabled
+aws s3api create-bucket --bucket $S3_BUCKET --region us-east-1
+aws s3api put-bucket-versioning --bucket $S3_BUCKET --versioning-configuration Status=Enabled
 export KOPS_STATE_STORE=s3://kops-state-playonmedia
 ```
 
@@ -29,11 +48,12 @@ export KOPS_STATE_STORE=s3://kops-state-playonmedia
 https://github.com/kubernetes/kops/blob/master/docs/getting_started/aws.md
 
 ```
-ID=$(uuidgen) && aws route53 create-hosted-zone --name cluster.playonmedia.com --caller-reference $ID | jq .DelegationSet.NameServers
-aws route53 list-hosted-zones | jq '.HostedZones[] | select(.Name=="playonmedia.com.") | .Id'
+ID=$(uuidgen) && aws route53 create-hosted-zone --name cluster.$DOMAIN_NAME --caller-reference $ID | jq .DelegationSet.NameServers
+aws route53 list-hosted-zones | jq '.HostedZones[] | select(.Name=="$DOMAIN_NAME.") | .Id'
 touch subdomain.json
-aws route53 change-resource-record-sets --hosted-zone-id Z100Q9OTKLC6GD --change-batch file://subdomain.json
-dig ns cluster.playonmedia.com
+export HOSTED_ZONE_ID=
+aws route53 change-resource-record-sets --hosted-zone-id $HOSTED_ZONE_ID --change-batch file://subdomain.json
+dig ns cluster.$DOMAIN_NAME
 ```
 
 
@@ -46,7 +66,7 @@ export KOPS_STATE_STORE=s3://kops-state-playonmedia
 ```
 
 ```
-kops create cluster --name=cluster.playonmedia.com --zones=us-east-1a --node-count=2 --node-size=t2.micro --master-size=t2.micro --yes
+kops create cluster --name=cluster.$DOMAIN_NAME --zones=us-east-1a --node-count=2 --node-size=t2.micro --master-size=t2.micro --state=s3://$S3_BUCKET --yes
 kops validate cluster
 ```
 
@@ -60,14 +80,18 @@ kops validate cluster --state=s3://kops-state-playonmedia
 ## Setup Helm & Installing a Chart
 ### Installing Tiller on the cluster
 ```
-kubectl create serviceaccount --namespace kube-system tiller
+<!-- kubectl create serviceaccount --namespace kube-system tiller
 kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-helm init --service-account tiller
+helm init --service-account tiller -->
+
+helm init
+helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+
 ```
 
 ### Installing a WordPress example chart
 ```
-helm install --name wordpress stable/wordpress
+helm install stable/wordpress --generate-name wordpress
 helm list
 helm del --purge wordpress
 ```
@@ -132,7 +156,7 @@ http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kube
 Below is probably not the correct way to setup traefik on kubernetes read this: `https://docs.traefik.io/v1.3/user-guide/kubernetes/`
 
 ```
-helm install --name traefik --values traefik.yaml stable/traefik
+helm install traefik --values traefik.yaml stable/traefik
 kubectl describe svc traefik --namespace default | grep Ingress | awk '{print $3}'
 ```
 Add in an A record into Route53 to the ELB created above and point it to `*`. Visit `https://traefik.cluster.playonmedia.com/`
@@ -140,9 +164,9 @@ Add in an A record into Route53 to the ELB created above and point it to `*`. Vi
 ### Install WordPress under Traefik
 
 ```
-helm install --name wordpress stable/wordpress --set ingress.enabled=true --set ingress.hostname=wordpress.cluster.playonmedia.com
+helm install wordpress stable/wordpress --set ingress.enabled=true --set ingress.hostname=wordpress.cluster.playonmedia.com
 ```
 
 ```
-helm install --name wordpress --values wordpress.yaml stable/wordpress
+helm install wordpress --values wordpress.yaml stable/wordpress
 ```
