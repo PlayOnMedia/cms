@@ -1,5 +1,7 @@
 # AWS / KOPS / HELM
 
+* https://kops.sigs.k8s.io/getting_started/aws/
+
 ## Requirements
 
 * **Kubectl:** https://kubernetes.io/docs/tasks/tools/install-kubectl/
@@ -10,17 +12,28 @@
 * **AWS Access Creds:** https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html
 * **AWS S3 Bucket:** https://docs.aws.amazon.com/cli/latest/reference/s3api/create-bucket.html
 
+AWS CLI
 ```
 sudo apt update
 sudo apt install -y awscli
-sudo snap install kubectl --classic
-wget https://github.com/kubernetes/kops/releases/download/v1.16.0/kops-linux-amd64
-chmod +x kops-linux-amd64
-mv ./kops-linux-amd64 /usr/local/bin/kops
 aws config
+```
+KUBECTL
+```
+sudo snap install kubectl --classic
+or
 curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
+```
+KOPS
+```
+wget https://github.com/kubernetes/kops/releases/download/v1.16.0/kops-linux-amd64
+chmod +x kops-linux-amd64
+mv ./kops-linux-amd64 /usr/local/bin/kops
+```
+HELM
+```
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 chmod 700 get_helm.sh
 ./get_helm.sh
@@ -40,6 +53,19 @@ Create a bucket to store the KOPS state.
 aws s3api create-bucket --bucket $S3_BUCKET --region us-east-1
 aws s3api put-bucket-versioning --bucket $S3_BUCKET --versioning-configuration Status=Enabled
 export KOPS_STATE_STORE=s3://kops-state-playonmedia
+```
+
+KOPS CLUSTER ACCOUNT
+```
+aws iam create-group --group-name kops
+aws iam attach-group-policy --policy-arn arn:aws:iam::aws:policy/AmazonEC2FullAccess --group-name kops
+aws iam attach-group-policy --policy-arn arn:aws:iam::aws:policy/AmazonRoute53FullAccess --group-name kops
+aws iam attach-group-policy --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess --group-name kops
+aws iam attach-group-policy --policy-arn arn:aws:iam::aws:policy/IAMFullAccess --group-name kops
+aws iam attach-group-policy --policy-arn arn:aws:iam::aws:policy/AmazonVPCFullAccess --group-name kops
+aws iam create-user --user-name kops
+aws iam add-user-to-group --user-name kops --group-name kops
+aws iam create-access-key --user-name kops
 ```
 
 ## Create Cluster
